@@ -1,8 +1,4 @@
-# streaming-mandelbrot
+flask-video-streaming
+=====================
 
-
-Dave Chen's code for streaming Mandelbrot frames rendered in CUDA.
-
-The streaming code comes from [video streaming with Flask](http://blog.miguelgrinberg.com/post/video-streaming-with-flask)
-
-The Mandelbrot code comes from [A Numba Mandelbrot Example](https://github.com/harrism/numba_examples/blob/master/mandelbrot_numba.ipynb)
+Supporting code for my article [video streaming with Flask](http://blog.miguelgrinberg.com/post/video-streaming-with-flask) and its follow-up [Flask Video Streaming Revisited](http://blog.miguelgrinberg.com/post/flask-video-streaming-revisited).
