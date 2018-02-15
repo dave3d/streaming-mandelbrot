@@ -13,7 +13,7 @@ class Camera(BaseCamera):
 
         while True:
             time.sleep(0.02)
-            yield mandel.mandel_frame()
+            yield mandel.mandel_frame(True)
             count = count+1
             if (count%100) == 0:
               endtime = time.time()
