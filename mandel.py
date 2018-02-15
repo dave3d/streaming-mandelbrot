@@ -1,7 +1,7 @@
 
 #  Code adapted from https://github.com/harrism/numba_examples/blob/master/mandelbrot_numba.ipynb
 
-import sys
+import sys, getopt
 
 import numpy as np
 import matplotlib.image
@@ -166,15 +166,40 @@ def mandel_frame(no_frame_gen=False):
 
 
 # Command line version generates frames and write to disk
+#
 if __name__ == "__main__":
+
+  nframes = 500
+  write_frames = False
+
+  try:
+    opts, args= getopt.getopt( sys.argv[1:], "hn:w",
+                              [ "help", "write"  ] )
+
+  except getopt.GetoptErr, err:
+    print (str(err))
+    usage()
+    sys.exit(1)
+
+  for o, a in opts:
+    if o in ("-n"):
+        nframes=a
+    elif o in ("-w", ):
+        write_frames = True
+    else:
+        print "mandel.py: [options]"
+        print ""
+        print "  -n int    Number of frames (default=500)"
+        print "  -w        Write out frames (default=False)"
+        assert False, "unhandled options"
+
+
 
   for x in path:
     print x
     print pathpt_to_window(x)
 
 
-  nframes = 99
-  write_frames = True
 
   loadtime = timer()
   print "Loaded GPU in %f s" % (loadtime-start)
@@ -185,7 +210,7 @@ if __name__ == "__main__":
     jpeg_img = mandel_frame(True)
 
     if jpeg_img and write_frames:
-      fname = "mandel-frame.%03d.png" % i
+      fname = "mandel-frame.%04d.png" % i
       fp = open(fname, 'wb')
       fp.write(jpeg_img)
       fp.close()
@@ -196,5 +221,6 @@ if __name__ == "__main__":
   dt = timer() - start
 
   print "Mandelbrot created on GPU in %f s" % dt
+  print dt/nframes, "seconds per frame"
 
 
