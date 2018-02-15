@@ -4,7 +4,6 @@
 import sys, getopt
 
 import numpy as np
-import matplotlib.image
 import cv2
 from timeit import default_timer as timer
 
@@ -128,7 +127,7 @@ def pathpt_to_window(pathpt):
 
 
 # generate a frame of the mandelbrot rendering
-def mandel_frame(no_frame_gen=False):
+def mandel_frame(gen_image=True):
   global frame_count, current_path_point, nframes_per_path
 
   # compute current location on flight path
@@ -154,7 +153,7 @@ def mandel_frame(no_frame_gen=False):
   rgb_d_image.to_host()
 
   # convert to image file format (PNG is the fastest)
-  if not no_frame_gen:
+  if gen_image:
     #jpeg_img = cv2.imencode('.jpg', rgbimg, [cv2.IMWRITE_JPEG_QUALITY, 30])[1].tobytes()
     jpeg_img = cv2.imencode('.png', rgbimg, [cv2.IMWRITE_PNG_STRATEGY_HUFFMAN_ONLY, 1, cv2.IMWRITE_PNG_STRATEGY_FIXED, 1])[1].tobytes()
     #jpeg_img = cv2.imencode('.ppm', rgbimg )[1].tobytes()
@@ -207,7 +206,7 @@ if __name__ == "__main__":
   frame_count=0
   # render multiple frames
   for i in range(nframes):
-    jpeg_img = mandel_frame(True)
+    jpeg_img = mandel_frame(write_frames)
 
     if jpeg_img and write_frames:
       fname = "mandel-frame.%04d.png" % i
@@ -215,12 +214,9 @@ if __name__ == "__main__":
       fp.write(jpeg_img)
       fp.close()
 
-  downloadtime = timer()
-  print "Render and D/L of %d frames in %f s" % (nframes, (downloadtime-loadtime))
-  print "%f fps" % (nframes/(downloadtime-loadtime))
-  dt = timer() - start
-
-  print "Mandelbrot created on GPU in %f s" % dt
-  print dt/nframes, "seconds per frame"
+  rendertime = timer()-loadtime
+  print "Render and D/L of %d frames in %f s" % (nframes, rendertime)
+  print nframes/rendertime, "fps"
+  print rendertime/nframes, "seconds per frame"
 
 
