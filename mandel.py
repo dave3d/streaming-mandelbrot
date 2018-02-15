@@ -127,7 +127,7 @@ def pathpt_to_window(pathpt):
 
 
 # generate a frame of the mandelbrot rendering
-def mandel_frame(gen_image=True):
+def mandel_frame(gen_image=True, to_cpu=True):
   global frame_count, current_path_point, nframes_per_path
 
   # compute current location on flight path
@@ -150,10 +150,11 @@ def mandel_frame(gen_image=True):
 
   # render mandelbrot image
   mandel_kernel[griddim, blockdim](win[0], win[1], win[2], win[3], rgb_d_image, cmap_gpu, niter)
-  rgb_d_image.to_host()
+  if to_cpu:
+    rgb_d_image.to_host()
 
   # convert to image file format (PNG is the fastest)
-  if gen_image:
+  if to_cpu and gen_image:
     #jpeg_img = cv2.imencode('.jpg', rgbimg, [cv2.IMWRITE_JPEG_QUALITY, 30])[1].tobytes()
     jpeg_img = cv2.imencode('.png', rgbimg, [cv2.IMWRITE_PNG_STRATEGY_HUFFMAN_ONLY, 1, cv2.IMWRITE_PNG_STRATEGY_FIXED, 1])[1].tobytes()
     #jpeg_img = cv2.imencode('.ppm', rgbimg )[1].tobytes()
@@ -170,10 +171,11 @@ if __name__ == "__main__":
 
   nframes = 500
   write_frames = False
+  gpu_only = False
 
   try:
-    opts, args= getopt.getopt( sys.argv[1:], "hn:w",
-                              [ "help", "write"  ] )
+    opts, args= getopt.getopt( sys.argv[1:], "hn:wg",
+                              [ "help", "write", "gpu_only"  ] )
 
   except getopt.GetoptErr, err:
     print (str(err))
@@ -182,14 +184,17 @@ if __name__ == "__main__":
 
   for o, a in opts:
     if o in ("-n"):
-        nframes=a
-    elif o in ("-w", ):
+        nframes = int(a)
+    elif o in ("-w", "write"):
         write_frames = True
+    elif o in ("-g", "gpu_only"):
+        gpu_only = True
     else:
         print "mandel.py: [options]"
         print ""
         print "  -n int    Number of frames (default=500)"
         print "  -w        Write out frames (default=False)"
+        print "  -g        GPU timing only (write-out disabled) (default=False)"
         assert False, "unhandled options"
 
 
@@ -206,7 +211,7 @@ if __name__ == "__main__":
   frame_count=0
   # render multiple frames
   for i in range(nframes):
-    jpeg_img = mandel_frame(write_frames)
+    jpeg_img = mandel_frame(write_frames, not gpu_only)
 
     if jpeg_img and write_frames:
       fname = "mandel-frame.%04d.png" % i
