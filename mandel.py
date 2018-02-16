@@ -77,24 +77,26 @@ griddim = (32,16)
 start = timer()
 rgb_d_image = cuda.to_device(rgbimg)
 frame_count=1
-current_path_point=0
+current_path_point=-1
 nframes_per_path=50
+debug =  False
 
 
 # render 1 frame before timing to force the JIT
 mandel_kernel[griddim, blockdim](-2.0, 1.0, -1.0, 1.0, rgb_d_image, cmap_gpu, 20)
 
-# path points are cx,cy,rx,ry,#iterations in pixel space
-path = [ [2048,1024, 2048,1024,  20],
-         [784,866,   200,100,    20],
-         [784,866,   200,100,    20],
-         [784,866,   20,10,      20],
-         [784,866,   20,10,      30],
-         [784,866,   20,10,      30],
-         [784,866,   2,1,      30],
-         [784,866,   2,1,      30],
-	 [2048,1024, 2048,1024,  20],
-	 [2048,1024, 2048,1024,  20],
+# path points are [cx,cy,rx,ry,#iterations] in pixel space
+path = [ [2048,1024, 2048,1024,  100],
+	 [2048,1024, 2048,1024,  100],
+         [784,866,   200,100,    100],
+         [784,866,   200,100,    100],
+         [784,866,   20,10,      100],
+         [784,866,   20,10,      200],
+         [784,866,   20,10,      200],
+         [784,866,   2,1,      200],
+         [784,866,   2,1,      200],
+	 [2048,1024, 2048,1024,  100],
+	 [2048,1024, 2048,1024,  100],
        ]
 
 
@@ -141,7 +143,9 @@ def mandel_frame(gen_image=True, to_cpu=True):
   frac = fc/(nframes_per_path-1.0)
   pixwin = lerp(path[current_path_point], path[current_path_point+1], frac)
   win=pathpt_to_window(pixwin)
-  #print frame_count, fc, current_path_point, win
+
+  if debug:
+    print frame_count, fc, current_path_point, win
 
   if len(pixwin)<5:
     niter = 20
@@ -152,6 +156,7 @@ def mandel_frame(gen_image=True, to_cpu=True):
   mandel_kernel[griddim, blockdim](win[0], win[1], win[2], win[3], rgb_d_image, cmap_gpu, niter)
   if to_cpu:
     rgb_d_image.to_host()
+    sys.stdout.write('.')
 
   # convert to image file format (PNG is the fastest)
   if to_cpu and gen_image:
@@ -174,8 +179,8 @@ if __name__ == "__main__":
   gpu_only = False
 
   try:
-    opts, args= getopt.getopt( sys.argv[1:], "hn:wg",
-                              [ "help", "write", "gpu_only"  ] )
+    opts, args= getopt.getopt( sys.argv[1:], "hdn:p:wg",
+                              [ "help", "debug", "write", "gpu_only"  ] )
 
   except getopt.GetoptErr, err:
     print (str(err))
@@ -185,6 +190,10 @@ if __name__ == "__main__":
   for o, a in opts:
     if o in ("-n"):
         nframes = int(a)
+    elif o in ("-p"):
+        nframes_per_path = int(a)
+    elif o in ("-d", "debug"):
+        debug = True
     elif o in ("-w", "write"):
         write_frames = True
     elif o in ("-g", "gpu_only"):
@@ -192,13 +201,18 @@ if __name__ == "__main__":
     else:
         print "mandel.py: [options]"
         print ""
-        print "  -n int    Number of frames (default=500)"
-        print "  -w        Write out frames (default=False)"
-        print "  -g        GPU timing only (write-out disabled) (default=False)"
+        print "  -h, --help      This help message"
+        print "  -d, --debug     Print debugging info"
+        print "  -n int          Number of frames (default=500)"
+        print "  -w, --write     Write out frames (default=False)"
+        print "  -g, --gpu_only  GPU timing only (write-out disabled) (default=False)"
+        print "  -p int          #frames per path point (default=50)"
         assert False, "unhandled options"
 
 
 
+  print ""
+  print "Animation path"
   for x in path:
     print x
     print pathpt_to_window(x)
