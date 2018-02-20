@@ -56,8 +56,10 @@ def init_path():
   current_path_point = -1
 
 def get_current_window(debug=False):
+  global frame_count, nframes_per_path, current_path_point
+
   # compute current location on flight path
-  fc = path.frame_count % path.nframes_per_path
+  fc = frame_count % nframes_per_path
   if fc==0:
     current_path_point = current_path_point+1
     if current_path_point >= len(path)-1:
@@ -69,7 +71,9 @@ def get_current_window(debug=False):
   win=pathpt_to_window(pixwin)
 
   if len(pixwin)>4:
-    win[4] = pixwin[4]
+    win.append( pixwin[4] )
+
+  frame_count = frame_count+1
 
   return win
 

@@ -52,8 +52,8 @@ def mandel_kernel(min_x, max_x, min_y, max_y, rgb_image, cmap, iters):
   last_index=l-3
 
   horizon = 2.0 ** 40
-  log_horizon = math.log(math.log(horizon))/math.log(2)
   ilog2 = 1.0/math.log(2.0)
+  log_horizon = math.log(math.log(horizon)) * ilog2
 
 
   for x in range(startX, width, gridX):
@@ -123,7 +123,6 @@ def mandel_frame(gen_image=True, to_cpu=True):
   else:
      jpeg_img = None
 
-  frame_count = frame_count+1
   return jpeg_img
 
 
@@ -170,9 +169,9 @@ if __name__ == "__main__":
 
   print ""
   print "Animation path"
-  for x in path:
+  for x in path.path:
     print x
-    print pathpt_to_window(x)
+    print path.pathpt_to_window(x)
 
 
 
