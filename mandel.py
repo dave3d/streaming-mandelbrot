@@ -1,7 +1,7 @@
 
 #  Code adapted from https://github.com/harrism/numba_examples/blob/master/mandelbrot_numba.ipynb
 
-import sys, getopt
+import sys, getopt, math
 
 import numpy as np
 import cv2
@@ -28,9 +28,9 @@ def mandel(x, y, max_iters):
     for i in range(max_iters):
       z = z*z + c
       if (z.real*z.real + z.imag*z.imag) >= 4:
-        return i
+        return i, z
 
-    return max_iters
+    return max_iters, z
 
 mandel_gpu = cuda.jit(device=True)(mandel)
 
@@ -47,18 +47,32 @@ def mandel_kernel(min_x, max_x, min_y, max_y, rgb_image, cmap, iters):
   startX, startY = cuda.grid(2)
   gridX = cuda.gridDim.x * cuda.blockDim.x;
   gridY = cuda.gridDim.y * cuda.blockDim.y;
+
   l=len(cmap)
+  last_index=l-3
+
+  horizon = 2.0 ** 40
+  log_horizon = math.log(math.log(horizon))/math.log(2)
+  ilog2 = 1.0/math.log(2.0)
+
 
   for x in range(startX, width, gridX):
     real = min_x + x * pixel_size_x
     for y in range(startY, height, gridY):
       imag = min_y + y * pixel_size_y
-      val = mandel_gpu(real, imag, iters)
+      n, z = mandel_gpu(real, imag, iters)
 
-      # lookup color from val
-      index = 3*val
-      if index>l:
-        index=l-3
+
+
+        index = last_index
+      else:
+
+        val = int(val)
+
+        # lookup color from val
+        index = int(3*val)
+        if index>l:
+          index=last_index
 
       rgb_image[y,x][2] = cmap[index]
       rgb_image[y,x][1] = cmap[index+1]
@@ -76,81 +90,24 @@ griddim = (32,16)
 
 start = timer()
 rgb_d_image = cuda.to_device(rgbimg)
-frame_count=1
-current_path_point=-1
-nframes_per_path=50
 debug =  False
 
 
 # render 1 frame before timing to force the JIT
 mandel_kernel[griddim, blockdim](-2.0, 1.0, -1.0, 1.0, rgb_d_image, cmap_gpu, 20)
 
-# path points are [cx,cy,rx,ry,#iterations] in pixel space
-path = [ [2048,1024, 2048,1024,  100],
-	 [2048,1024, 2048,1024,  100],
-         [784,866,   200,100,    100],
-         [784,866,   200,100,    100],
-         [784,866,   20,10,      100],
-         [784,866,   20,10,      200],
-         [784,866,   20,10,      200],
-         [784,866,   2,1,      200],
-         [784,866,   2,1,      200],
-	 [2048,1024, 2048,1024,  100],
-	 [2048,1024, 2048,1024,  100],
-       ]
-
-
-# bilerp
-def lerp(a, b, frac):
-  c=[]
-  frac1 = 1.0-frac
-  for x,y in zip(a,b):
-    r = x*frac1 + y*frac
-    c.append(r)
-  return c
-
-# convert from path point (pixel space) to window/Mandelbrot space
-def pathpt_to_window(pathpt):
-  cx = pathpt[0]
-  cy = pathpt[1]
-  xrad = pathpt[2]
-  yrad = pathpt[3]
-
-  winxrad = 1.5*xrad/2048.0
-  winyrad = yrad/1024.0
-  wincx = -2.0 + 1.5*cx/2048.0
-  wincy = -1.0 + cy/1024.0
-
-  wxmin = wincx-winxrad
-  wxmax = wincx+winxrad
-  wymin = wincy-winyrad
-  wymax = wincy+winyrad
-  return [wxmin, wxmax, wymin, wymax]
-
+import path
+path.init_path()
 
 # generate a frame of the mandelbrot rendering
 def mandel_frame(gen_image=True, to_cpu=True):
-  global frame_count, current_path_point, nframes_per_path
 
-  # compute current location on flight path
-  fc = frame_count % nframes_per_path
-  if fc==0:
-    current_path_point = current_path_point+1
-    if current_path_point >= len(path)-1:
-      current_path_point=0
-    print frame_count
+  win=path.get_current_window(debug)
 
-  frac = fc/(nframes_per_path-1.0)
-  pixwin = lerp(path[current_path_point], path[current_path_point+1], frac)
-  win=pathpt_to_window(pixwin)
-
-  if debug:
-    print frame_count, fc, current_path_point, win
-
-  if len(pixwin)<5:
+  if len(win)<5:
     niter = 20
   else:
-    niter = int(pixwin[4])
+    niter = int(win[4])
 
   # render mandelbrot image
   mandel_kernel[griddim, blockdim](win[0], win[1], win[2], win[3], rgb_d_image, cmap_gpu, niter)
