@@ -73,6 +73,9 @@ def get_current_window(debug=False):
   if len(pixwin)>4:
     win.append( pixwin[4] )
 
+  if debug:
+    print frame_count, fc, current_path_point, frac, pixwin, win
+
   frame_count = frame_count+1
 
   return win
