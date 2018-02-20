@@ -71,7 +71,7 @@ def mandel_kernel(min_x, max_x, min_y, max_y, rgb_image, cmap, iters):
 
         # lookup color from val
         index = int(3*val)
-        if index>l:
+        if index>=l:
           index=last_index
 
       rgb_image[y,x][2] = cmap[index]
