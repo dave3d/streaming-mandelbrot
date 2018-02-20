@@ -63,10 +63,10 @@ def mandel_kernel(min_x, max_x, min_y, max_y, rgb_image, cmap, iters):
       n, z = mandel_gpu(real, imag, iters)
 
 
-
+      val = n + 1 -  math.log(math.log(abs(z)))*ilog2 + log_horizon
+      if math.isnan(val):
         index = last_index
       else:
-
         val = int(val)
 
         # lookup color from val
